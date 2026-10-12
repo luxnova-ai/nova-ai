@@ -17,5 +17,88 @@
 <footer><div class="footinner"><a class="brand" href="#home" style="font-size:15px"><span class="logo" style="width:27px;height:27px;border-radius:8px">✦</span>NOVA AI</a><span>© 2026 NOVA AI · Maquette de démonstration</span><span>Mentions légales · Confidentialité · CGV (à compléter)</span></div></footer>
 <div class="modalback" id="modalback" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal"><button class="close" id="closemodal" aria-label="Fermer">×</button><div class="kicker">Prochaine étape</div><h3 id="modal-title">Offre sélectionnée</h3><p id="modal-text">Cette maquette n'encaisse pas de paiement. Il faudra connecter un système d'abonnement avant de proposer cette offre aux clients.</p><button class="btn primary" id="understand">Compris</button></div></div>
 <script>
-const chat=document.getElementById('chat'),form=document.getElementById('chatform'),prompt=document.getElementById('prompt');form.addEventListener('submit',e=>{e.preventDefault();const value=prompt.value.trim();if(!value)return;const u=document.createElement('div');u.className='msg user';u.textContent=value;chat.appendChild(u);const b=document.createElement('div');b.className='msg bot';const label=document.createElement('strong');label.textContent='✦ NOVA AI';b.appendChild(label);b.appendChild(document.createTextNode('Merci pour votre message ! Dans la version en ligne, une IA pourra répondre ici. Cette maquette sert à présenter le parcours et le design ; les réponses ne sont pas encore connectées à un modèle réel.'));chat.appendChild(b);prompt.value='';chat.scrollTop=chat.scrollHeight;});const back=document.getElementById('modalback');document.querySelectorAll('[data-plan]').forEach(btn=>btn.addEventListener('click',()=>{document.getElementById('modal-title').textContent='Offre '+btn.dataset.plan;document.getElementById('modal-text').textContent='Vous avez choisi l’offre '+btn.dataset.plan+'. Cette maquette ne traite aucun paiement. Pour encaisser les abonnements, il faudra connecter Stripe ou un autre prestataire, puis activer la création de compte et les droits d’accès.';back.classList.add('open')}));document.getElementById('closemodal').onclick=()=>back.classList.remove('open');document.getElementById('understand').onclick=()=>back.classList.remove('open');back.addEventListener('click',e=>{if(e.target===back)back.classList.remove('open')});document.addEventListener('keydown',e=>{if(e.key==='Escape')back.classList.remove('open')});
-</script></body></html>
+const chat = document.getElementById('chat');
+const form = document.getElementById('chatform');
+const prompt = document.getElementById('prompt');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const value = prompt.value.trim();
+  if (!value) return;
+
+  const userMessage = document.createElement('div');
+  userMessage.className = 'msg user';
+  userMessage.textContent = value;
+  chat.appendChild(userMessage);
+
+  const botMessage = document.createElement('div');
+  botMessage.className = 'msg bot';
+
+  const label = document.createElement('strong');
+  label.textContent = '✦ NOVA AI';
+
+  const answer = document.createElement('span');
+  answer.textContent = 'Je réfléchis…';
+
+  botMessage.appendChild(label);
+  botMessage.appendChild(answer);
+  chat.appendChild(botMessage);
+
+  prompt.value = '';
+  const sendButton = form.querySelector('button');
+  sendButton.disabled = true;
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: value })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Une erreur est survenue.');
+    }
+
+    answer.textContent = data.reply;
+  } catch (error) {
+    answer.textContent =
+      error.message || 'Impossible de contacter NOVA AI. Réessaie plus tard.';
+  } finally {
+    sendButton.disabled = false;
+    prompt.focus();
+    chat.scrollTop = chat.scrollHeight;
+  }
+});
+
+const back = document.getElementById('modalback');
+
+document.querySelectorAll('[data-plan]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.getElementById('modal-title').textContent =
+      'Offre ' + btn.dataset.plan;
+
+    document.getElementById('modal-text').textContent =
+      'Vous avez choisi l’offre ' + btn.dataset.plan +
+      '. Cette maquette ne traite aucun paiement. ' +
+      'Un système de paiement sécurisé devra être connecté avant la vente.';
+
+    back.classList.add('open');
+  });
+});
+
+document.getElementById('closemodal').onclick = () =>
+  back.classList.remove('open');
+
+document.getElementById('understand').onclick = () =>
+  back.classList.remove('open');
+
+back.addEventListener('click', (e) => {
+  if (e.target === back) back.classList.remove('open');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') back.classList.remove('open');
+});
